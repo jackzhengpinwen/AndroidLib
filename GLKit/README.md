@@ -271,3 +271,131 @@ private fun bindFrameBuffer(frameBuffer : Int) {
 它就是绑定到0号frame buffer上的，0号frame buffer通常代表屏幕，离屏渲染除外，这个暂不讨论，现在大家只需要知道将frame buffer绑定到0就能渲染到屏幕上就行了。
 
 # OpenGL ES 3.0
+## VBO和IBO
+我们渲染的时候，所有要访问的数据必需在显存中，因此，每次渲染时，OpenGL会有一个将这些顶点数据从内存复制到显存的操作，这样会带来一些问题：
+一个是因此每次渲染都要复制一次，因此内存中的顶点数据要一直留着，不然复制的时候就没有数据来复制了。
+另一个是如果顶点数据量大的时候，每次渲染都做这样的一次复制，性能上会有问题
+那有什么办法来避免复制？这时就要用到VBO，它可以和顶点数据绑定，绑定后的顶点数据是一直存储在显存中的，当需要用这些顶点数据的时候，直接绑定这个VBO就行了，不会有复制过程。
+那IBO又是什么呢？它和VBO作用很类似，VBO是为了避免顶点数据的复制，IBO是则是为了避免顶点索引数据的复制，什么是顶点索引呢？我们先来看一份顶点数据：
+```
+// 三角形顶点数据
+// The vertex data of a triangle
+private val vertexData = floatArrayOf(
+                            -1f, -1f,   // 左下角
+                            -1f, 1f,    // 左上角
+                            1f, 1f,     // 右上角
+                            -1f, -1f,   // 左下角
+                            1f, 1f,     // 右上角
+                            1f, -1f     // 右下角
+                        )                       
+// 顶点索引数据
+// The vertex data of triangles
+private val indexData = intArrayOf(0, 1, 2, 0, 2, 3)
+```
+我们可以很容易地看到，这6个顶点是有重复的，一个矩形只需要4个顶点就行了，有些点是不同三角形之间共用的，那么如何让不同三角形之间共用？
+这就要用到顶点索引，它能让我们用索引的方法告诉OpenGL我们的顶点，而不是每个点都用坐标的方式给出，这样可以减少我们的顶点数据量，这在面片数量较大时很有用。
+那么下面我们来看看具体如何使用VBO和IBO，先来看看顶点数据和顶点索引数据：
+```
+// 三角形顶点、纹理数据
+// The vertex data and texture coordinate data of triangles
+private val vertexData = floatArrayOf(
+                            -1f, -1f,   0f, 1f,     // x, y, u, v
+                            -1f, 1f,    0f, 0f,
+                            1f, 1f,     1f, 0f,
+                            1f, -1f,    1f, 1f
+                        )
+```
+这里我们将顶点和纹理坐标组合越来，这也是配合VBO和IBO的常规优化用法，它的好处让顶点和纹理坐标在存储上靠近，利于OpenGL取数据，提高性能，特别是在3D渲染时，数据一般都是这样组织的。
+接下来用glGenBuffers创建VBO和IBO:
+```
+// 创建VBO和IBO
+// Create VBO and IBO
+val buffers = IntArray(2)
+GLES30.glGenBuffers(buffers.size, buffers, 0)
+vbo = buffers[0]
+ibo = buffers[1]
+```
+下面将顶点的纹理数据加载到VBO中：
+```
+// 将顶点数据载入VBO
+// Load vertex data into VBO
+val vertexDataBuffer = ByteBuffer.allocateDirect(vertexData.size * java.lang.Float.SIZE / 8)
+                                    .order(ByteOrder.nativeOrder())
+                                    .asFloatBuffer()
+vertexDataBuffer.put(vertexData)
+vertexDataBuffer.position(0)
+GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo)
+GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, vertexDataBuffer.capacity() * java.lang.Float.SIZE / 8, vertexDataBuffer, GLES30.GL_STATIC_DRAW)
+GLES30.glEnableVertexAttribArray(LOCATION_ATTRIBUTE_POSITION)
+GLES30.glEnableVertexAttribArray(LOCATION_ATTRIBUTE_TEXTURE_COORDINATE)
+GLES30.glVertexAttribPointer(LOCATION_ATTRIBUTE_POSITION, 2, GLES30.GL_FLOAT, false, 16, 0)
+GLES30.glVertexAttribPointer(LOCATION_ATTRIBUTE_TEXTURE_COORDINATE, 2, GLES30.GL_FLOAT, false, 16, 8)
+```
+主要的关键点是先用glBindBuffer绑定我们在操作的buffer，这一点和操作texture和frame buffer时很像，操作前都先绑定。接
+着用glBufferData给它喂数据，这里最后一个参数用于提示OpenGL以便于它做一些优化，例如这里我们传了GL_STATIC_DRAW，即我们的数据是不会变的，
+还有一些其它的可以设置，如GL_DYNAMIC_DRAW则提示OpenGL这个buffer的数据是会变的。
+在glVertexAttribPointer指定顶点和纹理数据时，我们不再像之前那样，直接把数据的传进来，因为这时我们的数据已经在VBO中了，这里不需要再传，
+这里重点关注最后两个参数，倒数第二个参数是指定stride，即OpenGL去取一份数据时的跨度，这里因为我们把顶点和纹理数据组合在了一起，因此一份数据是2个顶点和2个纹理坐标，即4个float，16个字节。
+倒数第一个参数是指定这个数据在一份数据中的开始位置，因为我们在一份数据中是先放顶点再放纹理坐标，因此对于顶点，开始位置是0，对于纹理坐标，开始位置是第8个字节。
+这样我们就设置好了VBO和IBO，在渲染的时候，直接绑定VBO和IBO就可以使用对应的顶点和纹理数据了：
+```
+override fun onDrawFrame(gl: GL10?) {
+
+    // 设置清屏颜色
+    // Set the color which the screen will be cleared to
+    GLES30.glClearColor(0.9f, 0.9f, 0.9f, 1f)
+
+    // 清屏
+    // Clear the screen
+    GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+
+    // 设置视口，这里设置为整个GLSurfaceView区域
+    // Set the viewport to the full GLSurfaceView
+    GLES30.glViewport(0, 0, glSurfaceViewWidth, glSurfaceViewHeight)
+
+    // 设置好状态，准备渲染
+    // Set the status before rendering
+    GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo)
+    GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, ibo)
+    GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+    GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
+
+    // 调用draw方法用TRIANGLES的方式执行渲染，顶点数量为3个
+    // Call the draw method with GL_TRIANGLES to render 3 vertices
+    GLES30.glDrawElements(GLES30.GL_TRIANGLES, indexData.size, GLES30.GL_UNSIGNED_INT, 0)
+
+}
+```
+
+## EGL及GL线程
+EGL是连接OpenGL ES与本地窗口系统的桥梁。
+OpenGL是跨平台的，但是不同平台上的窗口系统是不一样的，它就需要一个东西帮助OpenGL与本地窗口系统进行对接、管理及执行GL命令等。
+比如你想把你的GL逻辑多线程化，以提升效率，如果不了解EGL，直接把GL操作简单地拆分到多个线程中执行，会发现有问题，
+再比如，你想用MediaCodec做视频编解码，你会发现，也常常需要了解EGL，特别是当你想在编码前、解码后做OpenGL特效处理时，
+比如将原视频进行OpenGL ES特效渲染然后编码保存，或者是解码原视频然后进行OpenGL ES特效渲染再显示出来。
+编码时需要将要编码的帧渲染到MediaCodec给你的一块surface上，而这些操作需要有EGL才能做，而解码时是解码到一块你自己指定的surface上，
+此时你也没有一个现成的EGL环境，如果你想解码出来先用OpenGL ES做些特效处理再显示出来，那么这时也需要EGL环境。
+GL线程则是一个与EGL环境绑定了的线程，绑定后可以在这个线程中执行GL操作。
+
+## 坐标系及矩阵变换
+在OpenGL ES中，有一个虚拟的摄像机，我们渲染出来的景像实际上就是这个虚拟摄像机所拍摄到的景像，这个虚拟摄像机的效果和我们真实生活中的摄像机效果更类似，
+我们可以通过调整虚拟摄像机的位置、朝向等参数来得到不同的观察结果，进而得到不同的渲染画面，
+举个形象一点的例子，例如我们平时玩的3D游戏，有相当一部分是用OpenGL ES渲染的，我们控制角色移动靠近一个物体时，物体就会变大，就像我们拿着一个摄像机朝一个物体走过去一样，
+拍摄到的物体就会变大，角色转身时，能看到不同的画面，就想是我们拿着一个摄像机朝不同的方向拍。
+
+首先OpenGL ES有个世界坐标系，我们渲染的物体就是在世界坐标系中，我们的模型需要放到世界坐标系中，
+那么当我们还没放的时候，模型就和世界坐标系没有联系，它就还处于自己的坐标系中，我们叫做模型坐标系、局部空间、局部坐标系，也就是图中的LOCAL SPACE。
+当我们把模型放到世界坐标系中，模型就在世界坐标系里有了坐标，也就是原来在LOCAL SPACE中的那些坐标值，变成了世界坐标系中的坐标值，
+帮助我们完成这个变换的就是模型矩阵，对应图中的MODEL MATRIX，于是这样我们就把模型放到了世界坐标系WORLD SPACE中
+放到世界坐标系后，是不是就确定了我们渲染出来看到的样子？还没有，大家可以想像一下，我把一个东西放在世界坐标系的某个地方，
+我可以从近处看观察它，也可以从远处观察它，还可以从上下左右观察它，甚至还可以倒着观察它，因此还需要确定我们观察它的状态。
+这里实际上就是在确定虚拟摄像机的摆放，从API的层面上看，我们只需要设置Camera的位置、朝向的点坐标、以及Camera的上方向向量就能将观察状态定下来，
+而这些设置最终会转换成OpenGL ES中的视图矩阵，对应图中的VIEW MATRIX
+经过View Matrix的变换后，我们观察它的结果就确定了，图中是从距离它一定的距离、上往下观察它，这时候的点坐标就来到了视图坐标系下，对应图中的VIEW SPACE
+这时候，我们能看到什么东西，基本已经确定了，不过还有一步投影变换，这是什么东西？大家想像一下，我们看到同一个东西，是不是通常都是近大远小？那么如何实现近大远小？
+就要靠投影变换，OpenGL ES提供正交投影和透视投影，正交投影没有近大远小的效果，不管在什么距离上看，都一样大，透视投影则有近大远小的效果，也是符合我们实际生活的一种效果
+经过投影变换后，就会转换到裁剪坐标系CLIP SPACE，这一步不仅做了投影，也做了裁剪，也就是裁剪出上图中左图的梯形区域和右图中的矩阵区域，不在这个区域中的物体不会在渲染的图面中看到。
+我们玩游戏的时候，大家可能会碰到这样的情况，就是人物走到一个物体的近处，如果很靠近这个物体，画面可能会穿进这个物体中，这就是因为物体的一部分超出了近平面，被裁剪掉了。
+再下一步是到NDC（设备标准化坐标）坐标系（图中省略了这一步直接到屏幕坐标系了），正如其名，这一步的坐标都是经过标准化的，在可视范围内的坐标值都是在-11之间，
+大家会想我们之前的教程，里面用的坐标是不是都是-11的？我们那种写法实际上就是在用NDC坐标直接来渲染，并没有经过矩阵变换，因此功能比较简单，还用不上矩阵变换。
+最后就到了我们的屏幕坐标系，这个坐标系大家应该非常熟悉了，android中的各种view里用的坐标就是屏幕坐标。

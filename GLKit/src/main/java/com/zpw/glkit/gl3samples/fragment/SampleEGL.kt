@@ -26,7 +26,7 @@ class SampleEGL : Fragment() {
             egl.init()
 
             egl.bind()
-
+            // 在一个没有EGL环境的线程中调用了OpenGL ES API 不能通过断言
             val textures = IntArray(1)
             GLES30.glGenTextures(textures.size, textures, 0)
             val imageTexture = textures[0]

@@ -39,12 +39,10 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
                 "}"
 
     // GLSurfaceView的宽高
-    // The width and height of GLSurfaceView
     private var glSurfaceViewWidth = 0
     private var glSurfaceViewHeight = 0
 
     // 三角形顶点、纹理数据
-    // The vertex data and texture coordinate data of triangles
     private val vertexData = floatArrayOf(
                                 -1f, -1f,   0f, 1f,     // x, y, u, v
                                 -1f, 1f,    0f, 0f,
@@ -52,47 +50,38 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
                                 1f, -1f,    1f, 1f
                             )
     // 顶点索引数据
-    // The vertex data of triangles
     private val indexData = intArrayOf(0, 1, 2, 0, 2, 3)
 
     // 要渲染的图片纹理
-    // The texture of the image to be rendered
     private var imageTexture = 0
 
     // a_position、a_textureCoordinate和u_texture的位置，与shader中写的对应
-    // The location of a_position、a_textureCoordinate and u_texture, corresponding with which in shader
     private val LOCATION_ATTRIBUTE_POSITION = 0
     private val LOCATION_ATTRIBUTE_TEXTURE_COORDINATE = 1
     private val LOCATION_UNIFORM_TEXTURE = 0
 
     // VBO和IBO
-    // VBO and IBO
     private var vbo = 0
     private var ibo = 0
 
     override fun onDrawFrame(gl: GL10?) {
 
         // 设置清屏颜色
-        // Set the color which the screen will be cleared to
         GLES30.glClearColor(0.9f, 0.9f, 0.9f, 1f)
 
         // 清屏
-        // Clear the screen
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
 
         // 设置视口，这里设置为整个GLSurfaceView区域
-        // Set the viewport to the full GLSurfaceView
         GLES30.glViewport(0, 0, glSurfaceViewWidth, glSurfaceViewHeight)
 
         // 设置好状态，准备渲染
-        // Set the status before rendering
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vbo)
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, ibo)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
 
         // 调用glDrawElements方法用TRIANGLES的方式执行渲染
-        // Call the glDrawElements method with GL_TRIANGLES
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, indexData.size, GLES30.GL_UNSIGNED_INT, 0)
 
     }
@@ -100,7 +89,6 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
 
         // 记录GLSurfaceView的宽高
-        // Record the width and height of the GLSurfaceView
         glSurfaceViewWidth = width
         glSurfaceViewHeight = height
 
@@ -109,11 +97,9 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
 
         // 创建GL程序
-        // Create GL program
         val programId = GLES30.glCreateProgram()
 
         // 加载、编译vertex shader和fragment shader
-        // Load and compile vertex shader and fragment shader
         val vertexShader = GLES30.glCreateShader(GLES30.GL_VERTEX_SHADER)
         val fragmentShader= GLES30.glCreateShader(GLES30.GL_FRAGMENT_SHADER)
         GLES30.glShaderSource(vertexShader, vertexShaderCode)
@@ -122,27 +108,22 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
         GLES30.glCompileShader(fragmentShader)
 
         // 将shader程序附着到GL程序上
-        // Attach the compiled shaders to the GL program
         GLES30.glAttachShader(programId, vertexShader)
         GLES30.glAttachShader(programId, fragmentShader)
 
         // 链接GL程序
-        // Link the GL program
         GLES30.glLinkProgram(programId)
 
         // 应用GL程序
-        // Use the GL program
         GLES30.glUseProgram(programId)
 
         // 创建VBO和IBO
-        // Create VBO and IBO
         val buffers = IntArray(2)
         GLES30.glGenBuffers(buffers.size, buffers, 0)
         vbo = buffers[0]
         ibo = buffers[1]
 
         // 将顶点和纹理数据载入VBO
-        // Load vertex data into VBO
         val vertexDataBuffer = ByteBuffer.allocateDirect(vertexData.size * java.lang.Float.SIZE / 8)
                                             .order(ByteOrder.nativeOrder())
                                             .asFloatBuffer()
@@ -156,7 +137,6 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
         GLES30.glVertexAttribPointer(LOCATION_ATTRIBUTE_TEXTURE_COORDINATE, 2, GLES30.GL_FLOAT, false, 16, 8)
 
         // 将顶点索引数据载入IBO
-        // Load index data into IBO
         val indexDataBuffer = ByteBuffer.allocateDirect(indexData.size * Integer.SIZE / 8)
                                 .order(ByteOrder.nativeOrder())
                                 .asIntBuffer()
@@ -166,13 +146,11 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
         GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, indexDataBuffer.capacity() * Integer.SIZE / 8, indexDataBuffer, GLES30.GL_STATIC_DRAW)
 
         // 创建图片纹理
-        // Create texture for image
         val textures = IntArray(1)
         GLES30.glGenTextures(textures.size, textures, 0)
         imageTexture = textures[0]
 
         // 将图片解码并加载到纹理中
-        // Decode image and load it into texture
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         val bitmap = Util.decodeBitmapFromAssets("image_2.jpg")
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, imageTexture)
@@ -189,7 +167,6 @@ class SampleVBOAndIBORenderer : GLSurfaceView.Renderer {
         bitmap.recycle()
 
         // 启动对应位置的参数，这里直接使用LOCATION_UNIFORM_TEXTURE，而无需像OpenGL 2.0那样需要先获取参数的location
-        // Enable the parameter of the location. Here we can simply use LOCATION_UNIFORM_TEXTURE, while in OpenGL 2.0 we have to query the location of the parameter
         GLES30.glUniform1i(LOCATION_UNIFORM_TEXTURE, 0)
 
     }

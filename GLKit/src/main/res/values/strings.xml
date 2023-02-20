@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">OpenGL2.0SamplesForAndroid</string>
+    <string name="sample2_0">Hello World</string>
+    <string name="sample2_1">两个三角形（2 Triangles）</string>
+    <string name="sample2_2">顶点着色器（Vertex Shader）</string>
+    <string name="sample2_3">片段着色器（Fragment Shader）</string>
+    <string name="sample2_4">绘制模式（Draw Mode）</string>
+    <string name="sample2_5">纹理（Texture）</string>
+    <string name="sample2_6">帧缓存（Frame Buffer）</string>
+    <string name="sample3_0">着色器(Shader)</string>
+    <string name="sample3_1">纹理数组(Texture Array)</string>
+    <string name="sample3_2">二进制GL程序(Binary GL Program)</string>
+    <string name="sample3_3">栅栏(Fence)</string>
+    <string name="sample3_4">多重目标渲染(Multiple Render Target)</string>
+    <string name="sample3_5">VBO和IBO(VBO and IBO)</string>
+    <string name="sample3_6">EGL(EGL)</string>
+    <string name="sample3_7">矩阵变换(Matrix Transform)</string>
+    <string name="sample3_8">颜色混合(Color Blend)</string>
+    <string name="sample3_9">光照(Lighting)</string>
+</resources>

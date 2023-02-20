@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <application>
+        <activity android:name=".gl2samples.GLKit2MainActivity"
+            android:exported="false"/>
+        <activity android:name=".gl2samples.GLKit2SimpleActivity"
+            android:exported="false"/>
+        <activity android:name=".gl3samples.GLKit3MainActivity"
+            android:exported="false"/>
+        <activity android:name=".gl3samples.GLKit3SimpleActivity"
+            android:exported="false"/>
+    </application>
+</manifest>

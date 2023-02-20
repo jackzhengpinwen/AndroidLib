@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">AndroidLib</string>
+    <string name="module_gl2">GL2Demo</string>
+    <string name="module_gl3">GL3Demo</string>
 </resources>

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zpw.glkit.gl2samples.GLKit2MainActivity
 import com.zpw.glkit.gl3samples.GLKit3MainActivity
+import com.zpw.net.NetMainActivity
 
 class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
@@ -29,7 +30,8 @@ class MainActivity : AppCompatActivity() {
 
         private val moduleName = arrayOf(
             getString(R.string.module_gl2),
-            getString(R.string.module_gl3)
+            getString(R.string.module_gl3),
+            getString(R.string.module_net)
         )
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
             val view = LayoutInflater.from(parent.context).inflate(R.layout.layout_module_list_item, null)
@@ -48,6 +50,9 @@ class MainActivity : AppCompatActivity() {
                     this@MainActivity.startActivity(intent)
                 } else if (position == 1) {
                     val intent = Intent(this@MainActivity, GLKit3MainActivity::class.java)
+                    this@MainActivity.startActivity(intent)
+                } else if (position == 2) {
+                    val intent = Intent(this@MainActivity, NetMainActivity::class.java)
                     this@MainActivity.startActivity(intent)
                 }
             }

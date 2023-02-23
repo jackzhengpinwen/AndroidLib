@@ -10,6 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
 }
 rootProject.name = "AndroidLib"
@@ -17,3 +18,4 @@ include ':app'
 include ':GLKit'
 include ':Net'
 include ':base'
+include ':Stock'

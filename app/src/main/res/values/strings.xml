@@ -3,4 +3,5 @@
     <string name="module_gl2">GL2Demo</string>
     <string name="module_gl3">GL3Demo</string>
     <string name="module_net">NETDemo</string>
+    <string name="module_stock">StockDemo</string>
 </resources>

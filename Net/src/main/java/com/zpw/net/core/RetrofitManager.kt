@@ -1,6 +1,6 @@
 package com.zpw.net.core
 
-import com.zpw.net.core.api.ApiService
+import com.zpw.net.core.api.StockApiService
 import com.zpw.net.core.interceptor.HandleDataInterceptor
 import com.zpw.net.core.interceptor.HttpHeaderInterceptor
 import okhttp3.OkHttpClient
@@ -10,11 +10,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitManager {
-    private const val BASE_URL = "https://remo-test.obsbot.com/"
+    const val BASE_URL = "https://yield.chinabond.com.cn"
 
-    val apiService: ApiService by lazy {
+    val apiService: StockApiService by lazy {
         RetrofitCreator.createApiService(
-            ApiService::class.java, BASE_URL
+            StockApiService::class.java, BASE_URL
         )
     }
 }

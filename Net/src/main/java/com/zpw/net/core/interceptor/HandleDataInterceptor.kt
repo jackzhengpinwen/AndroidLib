@@ -1,5 +1,6 @@
 package com.zpw.net.core.interceptor
 
+import com.zpw.net.core.RetrofitManager
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONObject
@@ -7,20 +8,20 @@ import org.json.JSONObject
 class HandleDataInterceptor : ResponseBodyInterceptor() {
 
     override fun intercept(response: Response, url: String?, body: String?): Response {
-        var jsonObject: JSONObject?
-        var returnJsonObject = JSONObject()
-        try {
-            jsonObject = JSONObject(body)
-            if (!jsonObject.has("error_code") && !jsonObject.has("error_msg")) {
-                val json = jsonObject.toString();
-                returnJsonObject.put("data", json)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        url?.let {
+            if (it.startsWith(RetrofitManager.BASE_URL)) {
+                val jsonObject = JSONObject("{}")
+                jsonObject.put("data", body)
 
-        val contentType = response.body?.contentType()
-        val responseBody = returnJsonObject.toString().replace("\\", "").replace("\"{", "{").replace("}\"","}").toResponseBody(contentType)
-        return response.newBuilder().body(responseBody).build() // 重新生成响应对象
+                val contentType = response.body?.contentType()
+                val returnResponse = jsonObject.toString()
+                    .replace("\"[", "[").replace("]\"", "]")
+                    .replace("\\", "")
+                    .replace("\"{", "{").replace("}\"", "}")
+                val responseBody = returnResponse.toResponseBody(contentType)
+                return response.newBuilder().body(responseBody).build() // 重新生成响应对象
+            }
+        }
+        return response
     }
 }

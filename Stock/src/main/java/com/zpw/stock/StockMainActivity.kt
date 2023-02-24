@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
-import androidx.room.Room
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -19,6 +18,7 @@ import com.zpw.stock.stock.StockViewModel
 
 class StockMainActivity : AppCompatActivity() {
     private val TAG = "StockMainActivity"
+    lateinit var gzllViewModel: StockViewModel
     lateinit var lineChart: LineChart
     lateinit var dateList: ArrayList<String>
     lateinit var gzllList: MutableList<Entry>
@@ -30,32 +30,32 @@ class StockMainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_stock_main)
-        Thread {
-            db = Room.databaseBuilder(
-                applicationContext,
-                AppDatabase::class.java, "database-gzll"
-            ).build()
-            dao = db.gzllDao()
-            gzlls = dao.getAll() as ArrayList<GZLL>
-            gzllList = mutableListOf()
-            lineChart = findViewById(R.id.gzll_chart)
-            runOnUiThread {
-                if (gzlls.isEmpty()) {
-                    loadGzllFromNet()
-                } else {
-                    var dateIndex = 0
-                    gzlls.forEach {
-                        gzllList.add(Entry(dateIndex++.toFloat(), it.price?.toFloat()!!))
+        lineChart = findViewById(R.id.gzll_chart)
+        gzllViewModel = ViewModelProvider(this).get(StockViewModel::class.java)
+        // 先从数据库查询有没有缓存
+        gzllViewModel.getAllGZLL()
+        gzllViewModel.getAllGzllDbLiveData.observe(this, object : ResponseObserver<List<GZLL>>() {
+            override fun onSuccess(data: List<GZLL>?) {
+                data?.let {
+                    if (it.isEmpty()) { // 没缓存，从网络获取
+                        loadGzllFromNet()
+                    } else { // 有缓存，直接加载
+                        gzlls = ArrayList(data)
+                        gzllList = mutableListOf()
+                        var dateIndex = 0
+                        gzlls.forEach {
+                            gzllList.add(Entry(dateIndex++.toFloat(), it.price?.toFloat()!!))
+                        }
+                        invalidateChart()
                     }
-                    invalidateChart()
                 }
             }
-        }.start()
+
+        })
     }
 
     fun loadGzllFromNet() {
         initDate()
-        val gzllViewModel = ViewModelProvider(this).get(StockViewModel::class.java)
         var dateIndex = 0
         gzllViewModel.queryChartInfo(dateList.get(dateIndex))
         gzllViewModel.gzllLiveData.observe(this, object : ResponseObserver<List<GZLLResponse>>() {
@@ -68,6 +68,9 @@ class StockMainActivity : AppCompatActivity() {
                                     gzllResponse.seriesData.forEach { price ->
                                         if (price.size == 2) {
                                             if (price[0] == 10.0) {
+                                                if (gzllList == null) {
+                                                    gzllList = mutableListOf()
+                                                }
                                                 gzllList.add(Entry(dateIndex.toFloat(), price[1].toFloat()))
                                                 if (gzlls == null) {
                                                     gzlls = ArrayList()
@@ -86,16 +89,19 @@ class StockMainActivity : AppCompatActivity() {
                     gzllViewModel.queryChartInfo(dateList.get(dateIndex))
                 } else {
                     saveToDB()
-                    invalidateChart()
                 }
             }
         })
     }
 
     private fun saveToDB() {
-        Thread {
-            dao.insertAll(gzlls)
-        }.start()
+        gzllViewModel.insertAllGZLL(gzlls)
+        gzllViewModel.insertAllGzllDbLiveData.observe(this, object : ResponseObserver<Unit>() {
+            override fun onSuccess(data: Unit?) {
+                invalidateChart()
+            }
+
+        })
     }
 
     private fun invalidateChart() {

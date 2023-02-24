@@ -44,4 +44,5 @@ dependencies {
     implementation project(":GLKit")
     implementation project(":Net")
     implementation project(":Stock")
+    implementation project(":base")
 }

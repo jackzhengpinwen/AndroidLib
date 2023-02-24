@@ -14,7 +14,7 @@ open class BaseRepository {
      *  @param  block 真正执行的函数回调
      *  @param responseLiveData 观察请求结果的LiveData
      */
-    suspend fun <T : Any> executeRequest(
+    suspend fun <T : Any> executeNetRequest(
         block: suspend () -> BaseResponse<T>,
         responseLiveData: ResponseMutableLiveData<T>,
         showLoading: Boolean = true,
@@ -41,6 +41,43 @@ open class BaseRepository {
             response.exception = e
         } finally {
             responseLiveData.postValue(response)
+            if (showLoading) {
+                loadingStateLiveData.postValue(LoadingState(loadingMsg, DataState.STATE_FINISH))
+            }
+        }
+    }
+
+    suspend fun <T : Any> executeDBRequest(
+        block: suspend () -> T,
+        responseLiveData: ResponseMutableLiveData<T>,
+        showLoading: Boolean = true,
+        loadingMsg: String? = null,
+    ) {
+        var response: T?
+        var responseWrapper: BaseResponse<T> = BaseResponse()
+        try {
+            if (showLoading) {
+                loadingStateLiveData.postValue(LoadingState(loadingMsg, DataState.STATE_LOADING))
+            }
+            response = block.invoke()
+            responseWrapper.data = response
+            if (responseWrapper.error_code == null) {
+                if (isEmptyData(responseWrapper.data)) {
+                    responseWrapper.dataState = DataState.STATE_EMPTY
+                } else {
+                    responseWrapper.dataState = DataState.STATE_SUCCESS
+                }
+
+
+            } else {
+                responseWrapper.dataState = DataState.STATE_FAILED
+                // throw ServerResponseException(response.errorCode, response.errorMsg)
+            }
+        } catch (e: Exception) {
+            responseWrapper.dataState = DataState.STATE_ERROR
+            responseWrapper.exception = e
+        } finally {
+            responseLiveData.postValue(responseWrapper)
             if (showLoading) {
                 loadingStateLiveData.postValue(LoadingState(loadingMsg, DataState.STATE_FINISH))
             }

@@ -1,6 +1,7 @@
 package com.zpw.net.core
 
 import com.zpw.net.core.api.StockApiService
+import com.zpw.net.core.api.TestApiService
 import com.zpw.net.core.interceptor.HandleDataInterceptor
 import com.zpw.net.core.interceptor.HttpHeaderInterceptor
 import okhttp3.OkHttpClient
@@ -15,6 +16,14 @@ object RetrofitManager {
     val apiService: StockApiService by lazy {
         RetrofitCreator.createApiService(
             StockApiService::class.java, BASE_URL
+        )
+    }
+
+    const val TEST_URL = "http://192.168.3.16:8080"
+
+    val testService: TestApiService by lazy {
+        RetrofitCreator.createApiService(
+            TestApiService::class.java, TEST_URL
         )
     }
 }

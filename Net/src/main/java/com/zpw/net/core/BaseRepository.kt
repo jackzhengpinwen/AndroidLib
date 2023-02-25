@@ -26,7 +26,7 @@ open class BaseRepository {
                 loadingStateLiveData.postValue(LoadingState(loadingMsg, DataState.STATE_LOADING))
             }
             response = block.invoke()
-            if (response.error_code == null) {
+            if (response.error_code == null || response.error_code.equals("200")) {
                 if (isEmptyData(response.data)) {
                     response.dataState = DataState.STATE_EMPTY
                 } else {
@@ -34,7 +34,6 @@ open class BaseRepository {
                 }
             } else {
                 response.dataState = DataState.STATE_FAILED
-            // throw ServerResponseException(response.errorCode, response.errorMsg)
             }
         } catch (e: Exception) {
             response.dataState = DataState.STATE_ERROR
